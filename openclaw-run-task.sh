@@ -54,7 +54,8 @@ echo "=========================================="
 REPO_DIR="/srv/ai-coding/workspaces/$TASK_ID/repo"
 LOG_DIR="/srv/ai-coding/logs/$TASK_ID"
 
-sudo chown -R "$USER:$USER" "$REPO_DIR" || true
+# Use non-interactive sudo for automation; if unavailable, continue.
+sudo -n chown -R "$USER:$USER" "$REPO_DIR" || true
 git config --global --add safe.directory "$REPO_DIR" || true
 
 cd "$REPO_DIR"
@@ -66,6 +67,12 @@ echo "========== PUSH BRANCH =========="
 if [[ "$REPO_URL" =~ ^https://github.com/ ]] && [ -n "${GITHUB_TOKEN:-}" ]; then
   AUTH_REPO_URL="${REPO_URL/https:\/\/github.com\//https:\/\/x-access-token:${GITHUB_TOKEN}@github.com\/}"
   git remote set-url origin "$AUTH_REPO_URL"
+fi
+
+# Sync with remote target branch when it already exists to avoid non-fast-forward push failures.
+git fetch origin "$TARGET_BRANCH" || true
+if git show-ref --verify --quiet "refs/remotes/origin/$TARGET_BRANCH"; then
+  git rebase "origin/$TARGET_BRANCH"
 fi
 
 git push -u origin "$TARGET_BRANCH"
