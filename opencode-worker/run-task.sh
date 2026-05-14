@@ -23,16 +23,34 @@ mkdir -p /workspace /logs /artifacts
 
 cd /workspace
 
-echo "[AI TASK] Cloning repo"
-git clone "$REPO_URL" repo
+echo "[AI TASK] Setting up repo"
+
+if [ -d "/repo-cache" ]; then
+  echo "[AI TASK] Cloning from local cache"
+  git clone -l /repo-cache repo 2>&1 || {
+    echo "[AI TASK][ERROR] Failed to clone from cache, fallback to remote"
+    git clone "$REPO_URL" repo || exit 1
+  }
+else
+  echo "[AI TASK] Cache not available, cloning from remote"
+  git clone "$REPO_URL" repo || exit 1
+fi
 
 cd repo
 
 git config user.name "${GIT_USER_NAME:-AI Coding Bot}"
 git config user.email "${GIT_USER_EMAIL:-ai-coding-bot@example.com}"
 
-echo "[AI TASK] Checking out base branch: $BASE_BRANCH"
-git checkout "$BASE_BRANCH"
+# 建立獨立的 worktree 進行修改（保護 repo 主目錄）
+WORK_DIR="work-$TASK_ID"
+echo "[AI TASK] Creating worktree: $WORK_DIR"
+git worktree add -d "$WORK_DIR" "$BASE_BRANCH" 2>&1 || {
+  echo "[AI TASK][ERROR] Failed to create worktree"
+  git status
+  exit 1
+}
+
+cd "$WORK_DIR"
 
 echo "[AI TASK] Creating target branch: $TARGET_BRANCH"
 git checkout -b "$TARGET_BRANCH"

@@ -1,0 +1,33 @@
+# AI 編碼任務配置（自動生成 TASK_ID）
+# 無需提供 task_id，系統將基於時間戳自動生成
+# 格式：task-YYYYMMDD-HHMMSS-NNNNNNN
+
+# 必需欄位
+repo_url: https://github.com/user/repo
+base_branch: main
+target_branch: ai/feature
+task_description: |
+  修復 bug：當使用者輸入為空時，應該返回錯誤而不是 crash
+  
+  修改內容：
+  1. 添加輸入驗證
+  2. 添加單元測試
+  3. 更新文檔
+
+# 可選欄位
+test_commands: |
+  npm test
+  npm run lint
+
+pr_title: "[AI] 自動修復：處理空輸入"
+pr_body: |
+  由 AI 自動生成的修復
+  
+  ## 修改內容
+  - 添加輸入驗證邏輯
+  - 補充單元測試用例
+  - 更新錯誤提示文字
+
+create_pr: true
+
+
