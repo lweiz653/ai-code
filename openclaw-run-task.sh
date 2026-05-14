@@ -81,30 +81,25 @@ echo "========== PUSH BRANCH =========="
 # Disable any interactive credential prompt in automation.
 export GIT_TERMINAL_PROMPT=0
 
-PUSH_FETCH_REMOTE="origin"
 if [[ "$REPO_URL" =~ ^https://github.com/ ]]; then
   if [ -z "$GIT_AUTH_TOKEN" ]; then
     echo "[ERROR] Missing GitHub token. Set GITHUB_TOKEN or GH_TOKEN in config/secrets.env, /srv/ai-coding/config/secrets.env, or SECRETS_FILE."
     exit 1
   fi
 
-  # Use per-command authenticated URL to avoid touching .git/config.
-  PUSH_FETCH_REMOTE="${REPO_URL/https:\/\/github.com\//https:\/\/x-access-token:${GIT_AUTH_TOKEN}@github.com\/}"
+  AUTH_REPO_URL="${REPO_URL/https:\/\/github.com\//https:\/\/x-access-token:${GIT_AUTH_TOKEN}@github.com\/}"
+  git remote set-url origin "$AUTH_REPO_URL"
   # Ensure gh CLI can also reuse the same token during PR steps.
   export GH_TOKEN="$GIT_AUTH_TOKEN"
 fi
 
 # Sync with remote target branch when it already exists to avoid non-fast-forward push failures.
-if git ls-remote --exit-code --heads "$PUSH_FETCH_REMOTE" "$TARGET_BRANCH" >/dev/null 2>&1; then
-  if git fetch "$PUSH_FETCH_REMOTE" "refs/heads/$TARGET_BRANCH:refs/remotes/origin/$TARGET_BRANCH"; then
-    git rebase "origin/$TARGET_BRANCH"
-  else
-    echo "[WARN] Failed to fetch remote target branch before push; continuing."
-  fi
+git fetch origin "$TARGET_BRANCH" || true
+if git show-ref --verify --quiet "refs/remotes/origin/$TARGET_BRANCH"; then
+  git rebase "origin/$TARGET_BRANCH"
 fi
 
-# Avoid -u in automation because it writes upstream config into .git/config.
-git push "$PUSH_FETCH_REMOTE" "HEAD:refs/heads/$TARGET_BRANCH"
+git push -u origin "$TARGET_BRANCH"
 
 PR_URL=""
 
